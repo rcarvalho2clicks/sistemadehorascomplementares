@@ -3,6 +3,7 @@
 {% block content %}
 
 <div class="landing">
+    {% if not session.get('aluno_id') and not session.get('admin_id') %}
     <nav class="landing-nav">
         <a href="{{ url_for('index') }}" class="landing-brand">
             <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
@@ -16,6 +17,7 @@
             <a href="{{ url_for('aluno_login') }}" class="btn btn-primary btn-sm">Entrar →</a>
         </div>
     </nav>
+    {% endif %}
 
     <section class="landing-hero">
         <span class="landing-eyebrow">Sistema acadêmico</span>
