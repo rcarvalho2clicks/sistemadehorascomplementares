@@ -63,6 +63,9 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Inicializa banco de dados na carga do módulo (gunicorn)
+init_db()
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
