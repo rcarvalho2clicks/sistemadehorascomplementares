@@ -200,6 +200,14 @@ def allowed_file(filename):
 
 # ─── ROTAS PÚBLICAS ───────────────────────────────────────────────
 
+import traceback
+
+@app.errorhandler(500)
+def handle_500(e):
+    tb = traceback.format_exc()
+    print(f"⚠️ ERRO 500: {e}\n{tb}", flush=True)
+    return f"<h1>Erro interno</h1><pre>{tb}</pre>" if 'DISABLE_DEBUG' not in os.environ else "Erro interno", 500
+
 @app.route('/')
 def index():
     return render_template('index.html')
