@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Detalhes da Submissão{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-file-earmark-text me-1"></i> Detalhes da Submissão</span>
+                <a href="{{ url_for('aluno_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Evento:</div>
+                    <div class="col-sm-8 fw-bold">{{ sub.evento }}</div>
+                </div>
+                {% if sub.descricao %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Descrição:</div>
+                    <div class="col-sm-8">{{ sub.descricao }}</div>
+                </div>
+                {% endif %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Carga Horária:</div>
+                    <div class="col-sm-8 fw-bold">{{ sub.horas }} horas</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Status:</div>
+                    <div class="col-sm-8">
+                        {% if sub.status == 'pendente' %}
+                            <span class="badge badge-pendente fs-6"><i class="bi bi-hourglass-split"></i> Pendente</span>
+                        {% elif sub.status == 'aprovado' %}
+                            <span class="badge badge-aprovado fs-6"><i class="bi bi-check-circle"></i> Aprovado</span>
+                        {% else %}
+                            <span class="badge badge-rejeitado fs-6"><i class="bi bi-x-circle"></i> Rejeitado</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Comprovante:</div>
+                    <div class="col-sm-8">
+                        <a href="{{ url_for('uploaded_file', filename=sub.arquivo) }}" target="_blank"
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-file-earmark"></i> Visualizar Comprovante
+                        </a>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Enviado em:</div>
+                    <div class="col-sm-8">{{ sub.data_envio[:19] }}</div>
+                </div>
+                {% if sub.admin_nota %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Parecer do Admin:</div>
+                    <div class="col-sm-8">
+                        <div class="p-3 bg-light rounded">
+                            <i class="bi bi-chat-quote me-1"></i> {{ sub.admin_nota }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

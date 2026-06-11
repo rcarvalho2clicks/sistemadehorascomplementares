@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Login Admin{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-dark text-white text-center">
+                <i class="bi bi-shield-lock fs-3"></i>
+                <h5 class="mb-0 mt-1">Login do Administrador</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Usuário</label>
+                        <input type="text" name="usuario" class="form-control form-control-lg" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Senha</label>
+                        <input type="password" name="senha" class="form-control form-control-lg" required>
+                    </div>
+                    <button type="submit" class="btn btn-dark btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

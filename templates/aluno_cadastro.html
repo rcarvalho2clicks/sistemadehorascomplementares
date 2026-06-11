@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Cadastro do Aluno{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-success text-white text-center">
+                <i class="bi bi-person-plus fs-3"></i>
+                <h5 class="mb-0 mt-1">Cadastro do Aluno</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-person me-1"></i> Nome Completo</label>
+                            <input type="text" name="nome" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-envelope me-1"></i> E-mail</label>
+                            <input type="email" name="email" class="form-control form-control-lg">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><i class="bi bi-book me-1"></i> Curso</label>
+                            <input type="text" name="curso" class="form-control form-control-lg" required placeholder="Ex: Ciência da Computação">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><i class="bi bi-people me-1"></i> Turma</label>
+                            <input type="text" name="turma" class="form-control form-control-lg" required placeholder="Ex: A">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><i class="bi bi-layers me-1"></i> Semestre</label>
+                            <select name="semestre" class="form-select form-select-lg" required>
+                                <option value="">Selecione</option>
+                                {% for s in range(1, 13) %}
+                                <option value="{{ s }}º">{{ s }}º Semestre</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label"><i class="bi bi-qr-code me-1"></i> RA</label>
+                            <input type="text" name="ra" class="form-control form-control-lg" required placeholder="RA">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-lock me-1"></i> Senha</label>
+                            <input type="password" name="senha" class="form-control form-control-lg" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="bi bi-lock-fill me-1"></i> Confirmar Senha</label>
+                            <input type="password" class="form-control form-control-lg" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                        <i class="bi bi-check-lg me-1"></i> Cadastrar
+                    </button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('aluno_login') }}" class="text-decoration-none">
+                        Já tem conta? Faça login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

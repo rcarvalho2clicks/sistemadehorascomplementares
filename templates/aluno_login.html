@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Login do Aluno{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white text-center">
+                <i class="bi bi-person-circle fs-3"></i>
+                <h5 class="mb-0 mt-1">Login do Aluno</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-qr-code me-1"></i> RA (Registro do Aluno)</label>
+                        <input type="text" name="ra" class="form-control form-control-lg" required placeholder="Ex: 123456">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-lock me-1"></i> Senha</label>
+                        <input type="password" name="senha" class="form-control form-control-lg" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+                    </button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('aluno_cadastro') }}" class="text-decoration-none">
+                        <i class="bi bi-person-plus"></i> Não tem conta? Cadastre-se
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

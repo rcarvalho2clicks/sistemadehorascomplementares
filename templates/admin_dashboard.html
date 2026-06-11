@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Painel Admin{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-shield-lock-fill"></i> Painel do Administrador</h4>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-info text-white p-3 text-center">
+            <h3 class="fw-bold mb-0">{{ stats.pendentes }}</h3>
+            <small>Pendentes</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-success text-white p-3 text-center">
+            <h3 class="fw-bold mb-0">{{ stats.aprovados }}</h3>
+            <small>Aprovados</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-danger text-white p-3 text-center">
+            <h3 class="fw-bold mb-0">{{ stats.rejeitados }}</h3>
+            <small>Rejeitados</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-secondary text-white p-3 text-center">
+            <h3 class="fw-bold mb-0">{{ stats.total }}</h3>
+            <small>Total</small>
+        </div>
+    </div>
+</div>
+
+{% if pendentes %}
+<div class="card mb-4 border-info">
+    <div class="card-header bg-info text-white">
+        <i class="bi bi-hourglass-split me-1"></i> Pendentes de Aprovação ({{ pendentes|length }})
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Curso/Turma</th>
+                        <th>RA</th>
+                        <th>Evento</th>
+                        <th>Horas</th>
+                        <th>Comprovante</th>
+                        <th>Data</th>
+                        <th style="min-width:250px">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in pendentes %}
+                    <tr>
+                        <td><strong>{{ s.nome }}</strong></td>
+                        <td>{{ s.curso }} — {{ s.turma }}<br><small class="text-muted">{{ s.semestre }}</small></td>
+                        <td>{{ s.ra }}</td>
+                        <td>{{ s.evento }}</td>
+                        <td><strong>{{ s.horas }}h</strong></td>
+                        <td>
+                            <a href="{{ url_for('uploaded_file', filename=s.arquivo) }}" target="_blank"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                        <td><small>{{ s.data_envio[:10] }}</small></td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <form method="POST" action="{{ url_for('admin_aprovar', id=s.id) }}" class="d-inline">
+                                    <button class="btn btn-success btn-sm" title="Aprovar"
+                                            onclick="return confirm('Aprovar esta submissão?')">
+                                        <i class="bi bi-check-lg"></i> Aprovar
+                                    </button>
+                                    <input type="text" name="nota" placeholder="Parecer (opcional)"
+                                           class="form-control form-control-sm d-inline w-auto ms-1" style="max-width:150px;">
+                                </form>
+                                <form method="POST" action="{{ url_for('admin_rejeitar', id=s.id) }}" class="d-inline">
+                                    <button class="btn btn-danger btn-sm" title="Rejeitar"
+                                            onclick="return confirm('Rejeitar esta submissão?')">
+                                        <i class="bi bi-x-lg"></i> Rejeitar
+                                    </button>
+                                    <input type="text" name="nota" placeholder="Motivo (opcional)"
+                                           class="form-control form-control-sm d-inline w-auto ms-1" style="max-width:150px;">
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success">
+    <i class="bi bi-check-circle-fill me-1"></i> Nenhuma submissão pendente! Todas foram revisadas.
+</div>
+{% endif %}
+
+{% if historico %}
+<div class="card">
+    <div class="card-header bg-white">
+        <i class="bi bi-clock-history me-1"></i> Últimas Revisões
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Evento</th>
+                        <th>Horas</th>
+                        <th>Status</th>
+                        <th>Parecer</th>
+                        <th>Revisão</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in historico %}
+                    <tr>
+                        <td>{{ s.nome }}</td>
+                        <td>{{ s.evento }}</td>
+                        <td>{{ s.horas }}h</td>
+                        <td>
+                            {% if s.status == 'aprovado' %}
+                                <span class="badge badge-aprovado">Aprovado</span>
+                            {% else %}
+                                <span class="badge badge-rejeitado">Rejeitado</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ s.admin_nota or '—' }}</small></td>
+                        <td><small>{{ s.data_revisao[:10] if s.data_revisao else '' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
