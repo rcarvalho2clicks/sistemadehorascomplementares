@@ -25,7 +25,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and HAS_POSTGRES:
     # PostgreSQL (Render, produção)
     def get_db():
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = psycopg2.connect(DATABASE_URL)
         conn.autocommit = False
         return conn
 else:
@@ -42,14 +42,17 @@ else:
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 def is_postgres():
-    return DATABASE_URL and HAS_POSTGRES
+    return bool(DATABASE_URL and HAS_POSTGRES)
+
+# Detecta tipo de banco ativo
+_IS_POSTGRES = is_postgres()
 
 def execute_query(query, params=(), fetch=False, fetchone=False, commit=False):
     """Executa query com placeholder correto para cada banco."""
     conn = get_db()
     cur = conn.cursor()
     
-    if is_postgres():
+    if _IS_POSTGRES:
         query = query.replace('?', '%s')
     
     cur.execute(query, params)
@@ -58,12 +61,23 @@ def execute_query(query, params=(), fetch=False, fetchone=False, commit=False):
         conn.commit()
     
     if fetchone:
-        result = cur.fetchone()
+        row = cur.fetchone()
+        if row is not None and _IS_POSTGRES:
+            # psycopg2 (sem DictCursor): tuple -> dict-like wrapper
+            cols = [desc[0] for desc in cur.description]
+            result = dict(zip(cols, row)) if row else None
+        else:
+            result = row
         cur.close()
         conn.close()
         return result
     elif fetch:
-        result = cur.fetchall()
+        rows = cur.fetchall()
+        if rows and _IS_POSTGRES:
+            cols = [desc[0] for desc in cur.description]
+            result = [dict(zip(cols, r)) for r in rows]
+        else:
+            result = rows
         cur.close()
         conn.close()
         return result
