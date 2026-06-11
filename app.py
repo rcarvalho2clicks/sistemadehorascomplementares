@@ -10,9 +10,14 @@ app.secret_key = os.environ.get('SECRET_KEY', 'horas-complementares-secret-key-m
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'}
-DATABASE = os.path.join(app.root_path, 'database.db')
+
+# No Render, o disco persistente é montado em /data/horas-complementares/static/uploads
+# O banco deve ir na pasta pai do uploads para persistir entre deploys
+PERSISTENT_DIR = os.environ.get('PERSISTENT_DIR', os.path.join(app.root_path, 'static', 'uploads', '..'))
+DATABASE = os.path.join(PERSISTENT_DIR, 'database.db')
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(PERSISTENT_DIR, exist_ok=True)
 
 def get_db():
     conn = sqlite3.connect(DATABASE)

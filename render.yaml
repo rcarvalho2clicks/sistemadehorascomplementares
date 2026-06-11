@@ -9,6 +9,8 @@ services:
         generateValue: true
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: PERSISTENT_DIR
+        value: /data/horas-complementares/static/uploads
     disk:
       name: uploads
       mountPath: /data/horas-complementares/static/uploads
