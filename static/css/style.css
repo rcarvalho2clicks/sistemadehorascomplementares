@@ -900,6 +900,10 @@ tbody tr:hover { background: var(--surface-2); }
    RESPONSIVE
    ═══════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════ */
+
 @media (max-width: 900px) {
     .app-layout { grid-template-columns: 1fr; }
     .sidebar {
@@ -907,24 +911,71 @@ tbody tr:hover { background: var(--surface-2); }
         top: 0; left: 0; right: 0;
         height: auto;
         z-index: 100;
-        padding: 12px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 8px 12px;
         flex-direction: row;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
     }
+    .sidebar-brand { 
+        margin-bottom: 0; 
+        padding: 4px 8px; 
+        font-size: 15px;
+    }
+    .sidebar-brand span { display: none; }
+    .sidebar-brand svg { width: 24px; height: 24px; }
+    
     .sidebar-nav {
         flex-direction: row;
-        gap: 4px;
+        gap: 2px;
         flex: 1;
         overflow-x: auto;
+        justify-content: center;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
-    .sidebar-footer { display: none; }
-    .main-content { padding: 80px 20px 32px; }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
+    .nav-item { 
+        padding: 8px 12px; 
+        font-size: 13px; 
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .nav-item svg { margin-right: 4px; }
+    
+    /* Mobile user menu */
+    .sidebar-footer { 
+        display: flex; 
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        padding-top: 0;
+        border-top: none;
+        margin-left: 8px;
+    }
+    .user-card { 
+        padding: 4px 8px; 
+        gap: 8px;
+    }
+    .user-card .user-info { display: none; }
+    .avatar { width: 30px; height: 30px; font-size: 13px; }
+    .logout-btn { 
+        padding: 6px 8px; 
+        font-size: 12px; 
+        gap: 4px;
+    }
+    .logout-btn span { display: none; }
+    .logout-btn svg { width: 18px; height: 18px; }
+    
+    .main-content { padding: 72px 16px 32px; }
     .auth-shell { grid-template-columns: 1fr; }
     .auth-side { display: none; }
-    .auth-form-side { padding: 32px 24px; }
-    .landing-hero { padding: 60px 24px 40px; }
-    .landing-hero h1 { font-size: 38px; }
-    .landing-features { padding: 40px 24px; }
-    .landing-nav { padding: 16px 24px; }
+    .auth-form-side { padding: 32px 20px; }
+    .landing-hero { padding: 56px 16px 40px; }
+    .landing-hero h1 { font-size: 34px; }
+    .landing-features { padding: 40px 16px; }
+    .landing-nav { padding: 12px 16px; }
+    .landing-brand span { display: none; }
+    .landing-brand svg { width: 24px; height: 24px; }
 }
