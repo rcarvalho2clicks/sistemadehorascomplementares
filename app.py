@@ -322,11 +322,20 @@ def aluno_nova_submissao():
     if request.method == 'POST':
         evento = request.form['evento']
         descricao = request.form['descricao']
-        horas = request.form['horas']
+        horas_str = request.form['horas']
         arquivo = request.files['arquivo']
+
+        # Converte vírgula brasileira para ponto decimal
+        horas_str = horas_str.replace(',', '.')
 
         if not arquivo or not allowed_file(arquivo.filename):
             flash('Envie um arquivo válido (PDF, PNG, JPG, GIF)', 'danger')
+            return render_template('aluno_nova.html')
+
+        try:
+            horas = float(horas_str)
+        except ValueError:
+            flash('Carga horária inválida! Use números (ex: 4,5 ou 4.5)', 'danger')
             return render_template('aluno_nova.html')
 
         # Salva arquivo com nome único
