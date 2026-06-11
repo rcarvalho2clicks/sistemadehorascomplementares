@@ -1,69 +1,94 @@
 {% extends "base.html" %}
-{% block title %}Cadastro do Aluno{% endblock %}
+{% block title %}Cadastro — Horas Complementares{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header bg-success text-white text-center">
-                <i class="bi bi-person-plus fs-3"></i>
-                <h5 class="mb-0 mt-1">Cadastro do Aluno</h5>
+
+<div class="auth-shell">
+    <aside class="auth-side">
+        <a href="{{ url_for('index') }}" class="auth-brand">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="white"/>
+                <path d="M10 9h12M10 16h12M10 23h7" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            Horas.
+        </a>
+
+        <div class="auth-pitch">
+            <h1>Crie sua conta.</h1>
+            <p>Leva menos de 1 minuto. Depois é só enviar seus certificados e pronto.</p>
+        </div>
+
+        <div class="auth-stats">
+            <div>
+                <div class="auth-stat-num">1min</div>
+                <div class="auth-stat-label">Cadastro</div>
             </div>
-            <div class="card-body p-4">
-                <form method="POST">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><i class="bi bi-person me-1"></i> Nome Completo</label>
-                            <input type="text" name="nome" class="form-control form-control-lg" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><i class="bi bi-envelope me-1"></i> E-mail</label>
-                            <input type="email" name="email" class="form-control form-control-lg">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label"><i class="bi bi-book me-1"></i> Curso</label>
-                            <input type="text" name="curso" class="form-control form-control-lg" required placeholder="Ex: Ciência da Computação">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label"><i class="bi bi-people me-1"></i> Turma</label>
-                            <input type="text" name="turma" class="form-control form-control-lg" required placeholder="Ex: A">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label"><i class="bi bi-layers me-1"></i> Semestre</label>
-                            <select name="semestre" class="form-select form-select-lg" required>
-                                <option value="">Selecione</option>
-                                {% for s in range(1, 13) %}
-                                <option value="{{ s }}º">{{ s }}º Semestre</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <label class="form-label"><i class="bi bi-qr-code me-1"></i> RA</label>
-                            <input type="text" name="ra" class="form-control form-control-lg" required placeholder="RA">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><i class="bi bi-lock me-1"></i> Senha</label>
-                            <input type="password" name="senha" class="form-control form-control-lg" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><i class="bi bi-lock-fill me-1"></i> Confirmar Senha</label>
-                            <input type="password" class="form-control form-control-lg" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-success btn-lg w-100">
-                        <i class="bi bi-check-lg me-1"></i> Cadastrar
-                    </button>
-                </form>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('aluno_login') }}" class="text-decoration-none">
-                        Já tem conta? Faça login
-                    </a>
-                </div>
+            <div>
+                <div class="auth-stat-num">0</div>
+                <div class="auth-stat-label">Burocracia</div>
+            </div>
+            <div>
+                <div class="auth-stat-num">100%</div>
+                <div class="auth-stat-label">Gratuito</div>
             </div>
         </div>
+    </aside>
+
+    <div class="auth-form-side">
+        <form method="POST" class="auth-form">
+            <h2>Cadastro de aluno</h2>
+            <p class="auth-form-subtitle">Preencha seus dados acadêmicos.</p>
+
+            <div class="form-group">
+                <label class="form-label">Nome completo</label>
+                <input type="text" name="nome" class="form-input" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Curso</label>
+                    <input type="text" name="curso" class="form-input" required placeholder="Ex: Pedagogia">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Turma</label>
+                    <input type="text" name="turma" class="form-input" required placeholder="Ex: A">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Semestre</label>
+                    <select name="semestre" class="form-select" required>
+                        <option value="">Selecione</option>
+                        {% for s in range(1, 13) %}
+                        <option value="{{ s }}º">{{ s }}º</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">RA</label>
+                    <input type="text" name="ra" class="form-input" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">E-mail (opcional)</label>
+                <input type="email" name="email" class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Senha</label>
+                <input type="password" name="senha" class="form-input" required minlength="4">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%; justify-content:center; margin-top:8px;">
+                Criar conta
+            </button>
+
+            <div class="auth-link">
+                Já tem conta? <a href="{{ url_for('aluno_login') }}">Faça login</a>
+            </div>
+        </form>
     </div>
 </div>
+
 {% endblock %}

@@ -1,34 +1,62 @@
 {% extends "base.html" %}
-{% block title %}Login do Aluno{% endblock %}
+{% block title %}Login — Horas Complementares{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header bg-primary text-white text-center">
-                <i class="bi bi-person-circle fs-3"></i>
-                <h5 class="mb-0 mt-1">Login do Aluno</h5>
+
+<div class="auth-shell">
+    <aside class="auth-side">
+        <a href="{{ url_for('index') }}" class="auth-brand">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="white"/>
+                <path d="M10 9h12M10 16h12M10 23h7" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            Horas.
+        </a>
+
+        <div class="auth-pitch">
+            <h1>Bem-vindo de volta.</h1>
+            <p>Continue de onde parou. Suas horas complementares estão esperando aprovação.</p>
+        </div>
+
+        <div class="auth-stats">
+            <div>
+                <div class="auth-stat-num">100%</div>
+                <div class="auth-stat-label">Digital</div>
             </div>
-            <div class="card-body p-4">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-qr-code me-1"></i> RA (Registro do Aluno)</label>
-                        <input type="text" name="ra" class="form-control form-control-lg" required placeholder="Ex: 123456">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-lock me-1"></i> Senha</label>
-                        <input type="password" name="senha" class="form-control form-control-lg" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-lg w-100">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
-                    </button>
-                </form>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('aluno_cadastro') }}" class="text-decoration-none">
-                        <i class="bi bi-person-plus"></i> Não tem conta? Cadastre-se
-                    </a>
-                </div>
+            <div>
+                <div class="auth-stat-num">∞</div>
+                <div class="auth-stat-label">Submissões</div>
+            </div>
+            <div>
+                <div class="auth-stat-num">24h</div>
+                <div class="auth-stat-label">Aprovação</div>
             </div>
         </div>
+    </aside>
+
+    <div class="auth-form-side">
+        <form method="POST" class="auth-form">
+            <h2>Entrar como aluno</h2>
+            <p class="auth-form-subtitle">Use seu RA e senha para acessar o painel.</p>
+
+            <div class="form-group">
+                <label class="form-label">RA (Registro do Aluno)</label>
+                <input type="text" name="ra" class="form-input" required placeholder="Ex: 123456" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Senha</label>
+                <input type="password" name="senha" class="form-input" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%; justify-content:center; margin-top:8px;">
+                Entrar
+            </button>
+
+            <div class="auth-link">
+                Ainda não tem conta? <a href="{{ url_for('aluno_cadastro') }}">Cadastre-se</a>
+            </div>
+        </form>
     </div>
 </div>
+
 {% endblock %}

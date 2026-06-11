@@ -1,29 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Login Admin{% endblock %}
+{% block title %}Admin — Login{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header bg-dark text-white text-center">
-                <i class="bi bi-shield-lock fs-3"></i>
-                <h5 class="mb-0 mt-1">Login do Administrador</h5>
+
+<div class="auth-shell">
+    <aside class="auth-side">
+        <a href="{{ url_for('index') }}" class="auth-brand">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="white"/>
+                <path d="M10 9h12M10 16h12M10 23h7" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            Horas.
+        </a>
+
+        <div class="auth-pitch">
+            <h1>Painel administrativo.</h1>
+            <p>Gerencie aprovações, revise comprobatórios e acompanhe o status de cada aluno.</p>
+        </div>
+
+        <div class="auth-stats">
+            <div>
+                <div class="auth-stat-num">1-click</div>
+                <div class="auth-stat-label">Aprovação</div>
             </div>
-            <div class="card-body p-4">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label class="form-label">Usuário</label>
-                        <input type="text" name="usuario" class="form-control form-control-lg" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Senha</label>
-                        <input type="password" name="senha" class="form-control form-control-lg" required>
-                    </div>
-                    <button type="submit" class="btn btn-dark btn-lg w-100">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
-                    </button>
-                </form>
+            <div>
+                <div class="auth-stat-num">PDF</div>
+                <div class="auth-stat-label">Comprovantes</div>
+            </div>
+            <div>
+                <div class="auth-stat-num">Real-time</div>
+                <div class="auth-stat-label">Atualização</div>
             </div>
         </div>
+    </aside>
+
+    <div class="auth-form-side">
+        <form method="POST" class="auth-form">
+            <h2>Acesso restrito</h2>
+            <p class="auth-form-subtitle">Apenas coordenadores e administradores.</p>
+
+            <div class="form-group">
+                <label class="form-label">Usuário</label>
+                <input type="text" name="usuario" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Senha</label>
+                <input type="password" name="senha" class="form-input" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%; justify-content:center; margin-top:8px;">
+                Entrar no painel
+            </button>
+        </form>
     </div>
 </div>
+
 {% endblock %}

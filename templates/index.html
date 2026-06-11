@@ -1,27 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Início — Horas Complementares{% endblock %}
+{% block title %}Horas Complementares — Para sua faculdade{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-lg-8 text-center">
-        <div class="card p-5">
-            <i class="bi bi-journal-check text-primary" style="font-size: 4rem;"></i>
-            <h1 class="mt-3 fw-bold">Sistema de Horas Complementares</h1>
-            <p class="lead text-muted">
-                Gerencie suas horas complementares de forma simples e organizada.<br>
-                Alunos enviam comprovantes — administradores aprovam.
-            </p>
-            <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
-                <a href="{{ url_for('aluno_login') }}" class="btn btn-primary btn-lg px-4">
-                    <i class="bi bi-person-circle me-2"></i>Sou Aluno
-                </a>
-                <a href="{{ url_for('aluno_cadastro') }}" class="btn btn-outline-primary btn-lg px-4">
-                    <i class="bi bi-person-plus me-2"></i>Cadastrar
-                </a>
-                <a href="{{ url_for('admin_login') }}" class="btn btn-secondary btn-lg px-4">
-                    <i class="bi bi-shield-lock me-2"></i>Admin
-                </a>
+
+<div class="landing">
+    <nav class="landing-nav">
+        <a href="{{ url_for('index') }}" class="landing-brand">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="#1a1a1a"/>
+                <path d="M10 9h12M10 16h12M10 23h7" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            Horas<span style="color:#1e40af">.</span>
+        </a>
+        <div style="display:flex; gap:8px;">
+            <a href="{{ url_for('admin_login') }}" class="btn btn-ghost btn-sm">Admin</a>
+            <a href="{{ url_for('aluno_login') }}" class="btn btn-primary btn-sm">Entrar →</a>
+        </div>
+    </nav>
+
+    <section class="landing-hero">
+        <span class="landing-eyebrow">Sistema acadêmico</span>
+        <h1>Lance suas horas<br>complementares em <em>minutos</em>.</h1>
+        <p>Envie comprovantes, acompanhe aprovações e fique em dia com a faculdade — tudo pelo celular, sem papelada.</p>
+        <div class="landing-cta">
+            <a href="{{ url_for('aluno_cadastro') }}" class="btn btn-primary btn-lg">Começar agora</a>
+            <a href="{{ url_for('aluno_login') }}" class="btn btn-secondary btn-lg">Já tenho conta</a>
+        </div>
+    </section>
+
+    <section class="landing-features">
+        <div class="landing-features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <h3>Envie pelo celular</h3>
+                <p>Tire uma foto do certificado e envie. Aceita PDF, JPG e PNG — sem complicação.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3>Aprovação rápida</h3>
+                <p>Coordenação recebe, revisa e aprova com um clique. Você acompanha o status em tempo real.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <h3>Acompanhe o total</h3>
+                <p>Veja a soma de horas aprovadas, pendentes e o quanto falta pro seu diploma.</p>
             </div>
         </div>
-    </div>
+    </section>
 </div>
+
 {% endblock %}
