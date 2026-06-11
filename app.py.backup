@@ -15,12 +15,7 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'horas-complementares-secret-key-mude-isso')
-# Upload folder — usa PERSISTENT_DIR quando disponível (Render), senão static/uploads
-PERSISTENT_DIR = os.environ.get('PERSISTENT_DIR')
-if PERSISTENT_DIR:
-    app.config['UPLOAD_FOLDER'] = PERSISTENT_DIR
-else:
-    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
@@ -30,7 +25,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and HAS_POSTGRES:
     # PostgreSQL (Render, produção)
     def get_db():
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         conn.autocommit = False
         return conn
 else:
@@ -47,57 +42,28 @@ else:
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 def is_postgres():
-    return bool(DATABASE_URL and HAS_POSTGRES)
-
-# Detecta tipo de banco ativo
-_IS_POSTGRES = is_postgres()
-
-class ResultRow:
-    """Wrapper que suporta acesso por nome ['coluna'] e por índice [0],
-    compatível com sqlite3.Row para migração transparente."""
-    __slots__ = ('_data', '_keys')
-    
-    def __init__(self, keys, values):
-        self._keys = keys
-        self._data = values
-    
-    def __getitem__(self, key):
-        if isinstance(key, (int,)):
-            return self._data[key]
-        return self._data[self._keys.index(key)]
-    
-    def __bool__(self):
-        return True
-    
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except (IndexError, ValueError):
-            return default
+    return DATABASE_URL and HAS_POSTGRES
 
 def execute_query(query, params=(), fetch=False, fetchone=False, commit=False):
     """Executa query com placeholder correto para cada banco."""
     conn = get_db()
     cur = conn.cursor()
     
-    if _IS_POSTGRES:
+    if is_postgres():
         query = query.replace('?', '%s')
     
     cur.execute(query, params)
-    cols = [desc[0] for desc in cur.description] if cur.description else []
     
     if commit:
         conn.commit()
     
     if fetchone:
-        row = cur.fetchone()
-        result = ResultRow(cols, row) if row is not None else None
+        result = cur.fetchone()
         cur.close()
         conn.close()
         return result
     elif fetch:
-        rows = cur.fetchall()
-        result = [ResultRow(cols, r) for r in rows]
+        result = cur.fetchall()
         cur.close()
         conn.close()
         return result
@@ -203,30 +169,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ─── JINJA2 FILTERS ────────────────────────────────────────────────
-
-@app.template_filter('dt')
-def format_dt(value, fmt="%Y-%m-%d"):
-    """Formata data para string. Aceita datetime (Postgres) e str (SQLite)."""
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        # SQLite retorna string
-        return value[:len(fmt)]
-    try:
-        return value.strftime(fmt)
-    except AttributeError:
-        return str(value)
-
 # ─── ROTAS PÚBLICAS ───────────────────────────────────────────────
-
-import traceback
-
-@app.errorhandler(500)
-def handle_500(e):
-    tb = traceback.format_exc()
-    print(f"⚠️ ERRO 500: {e}\n{tb}", flush=True)
-    return f"<h1>Erro interno</h1><pre>{tb}</pre>" if 'DISABLE_DEBUG' not in os.environ else "Erro interno", 500
 
 @app.route('/')
 def index():
@@ -243,20 +186,19 @@ def aluno_cadastro():
         email = request.form['email']
         senha = request.form['senha']
 
+        conn = get_db()
         try:
-            execute_query(
+            conn.execute(
                 "INSERT INTO alunos (nome, curso, turma, semestre, ra, email, senha) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (nome, curso, turma, semestre, ra, email, senha),
-                commit=True
+                (nome, curso, turma, semestre, ra, email, senha)
             )
+            conn.commit()
             flash('Cadastro realizado com sucesso! Faça login.', 'success')
-        except (sqlite3.IntegrityError, Exception) as e:
-            # PostgreSQL raises psycopg2.errors.UniqueViolation
-            if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
-                flash('RA já cadastrado!', 'danger')
-            else:
-                raise
+        except sqlite3.IntegrityError:
+            flash('RA já cadastrado!', 'danger')
             return render_template('aluno_cadastro.html')
+        finally:
+            conn.close()
         return redirect(url_for('aluno_login'))
     return render_template('aluno_cadastro.html')
 
@@ -265,11 +207,9 @@ def aluno_login():
     if request.method == 'POST':
         ra = request.form['ra']
         senha = request.form['senha']
-        aluno = execute_query(
-            "SELECT * FROM alunos WHERE ra = ? AND senha = ?", 
-            (ra, senha), 
-            fetchone=True
-        )
+        conn = get_db()
+        aluno = conn.execute("SELECT * FROM alunos WHERE ra = ? AND senha = ?", (ra, senha)).fetchone()
+        conn.close()
         if aluno:
             session['aluno_id'] = aluno['id']
             session['aluno_nome'] = aluno['nome']
@@ -288,11 +228,9 @@ def admin_login():
     if request.method == 'POST':
         usuario = request.form['usuario']
         senha = request.form['senha']
-        admin = execute_query(
-            "SELECT * FROM admin WHERE usuario = ? AND senha = ?", 
-            (usuario, senha), 
-            fetchone=True
-        )
+        conn = get_db()
+        admin = conn.execute("SELECT * FROM admin WHERE usuario = ? AND senha = ?", (usuario, senha)).fetchone()
+        conn.close()
         if admin:
             session['admin_id'] = admin['id']
             session['admin_user'] = admin['usuario']
@@ -313,28 +251,23 @@ def aluno_dashboard():
     if 'aluno_id' not in session:
         return redirect(url_for('aluno_login'))
 
-    aluno = execute_query(
-        "SELECT * FROM alunos WHERE id = ?", 
-        (session['aluno_id'],), 
-        fetchone=True
-    )
-    submissoes = execute_query(
+    conn = get_db()
+    aluno = conn.execute("SELECT * FROM alunos WHERE id = ?", (session['aluno_id'],)).fetchone()
+    submissoes = conn.execute(
         "SELECT * FROM submissao WHERE aluno_id = ? ORDER BY data_envio DESC",
-        (session['aluno_id'],),
-        fetch=True
-    )
+        (session['aluno_id'],)
+    ).fetchall()
 
     # Estatísticas
-    total_horas = execute_query(
+    total_horas = conn.execute(
         "SELECT COALESCE(SUM(horas), 0) FROM submissao WHERE aluno_id = ? AND status = 'aprovado'",
-        (session['aluno_id'],),
-        fetchone=True
-    )[0]
-    pendentes = execute_query(
+        (session['aluno_id'],)
+    ).fetchone()[0]
+    pendentes = conn.execute(
         "SELECT COUNT(*) FROM submissao WHERE aluno_id = ? AND status = 'pendente'",
-        (session['aluno_id'],),
-        fetchone=True
-    )[0]
+        (session['aluno_id'],)
+    ).fetchone()[0]
+    conn.close()
 
     return render_template('aluno_dashboard.html',
                          aluno=aluno,
@@ -350,20 +283,11 @@ def aluno_nova_submissao():
     if request.method == 'POST':
         evento = request.form['evento']
         descricao = request.form['descricao']
-        horas_str = request.form['horas']
+        horas = request.form['horas']
         arquivo = request.files['arquivo']
-
-        # Converte vírgula brasileira para ponto decimal
-        horas_str = horas_str.replace(',', '.')
 
         if not arquivo or not allowed_file(arquivo.filename):
             flash('Envie um arquivo válido (PDF, PNG, JPG, GIF)', 'danger')
-            return render_template('aluno_nova.html')
-
-        try:
-            horas = float(horas_str)
-        except ValueError:
-            flash('Carga horária inválida! Use números (ex: 4,5 ou 4.5)', 'danger')
             return render_template('aluno_nova.html')
 
         # Salva arquivo com nome único
@@ -371,11 +295,13 @@ def aluno_nova_submissao():
         nome_arquivo = f"{uuid.uuid4().hex}.{ext}"
         arquivo.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo))
 
-        execute_query(
+        conn = get_db()
+        conn.execute(
             "INSERT INTO submissao (aluno_id, evento, descricao, horas, arquivo) VALUES (?, ?, ?, ?, ?)",
-            (session['aluno_id'], evento, descricao, float(horas), nome_arquivo),
-            commit=True
+            (session['aluno_id'], evento, descricao, float(horas), nome_arquivo)
         )
+        conn.commit()
+        conn.close()
 
         flash('Horas complementares enviadas para aprovação!', 'success')
         return redirect(url_for('aluno_dashboard'))
@@ -386,11 +312,10 @@ def aluno_nova_submissao():
 def aluno_ver_submissao(id):
     if 'aluno_id' not in session:
         return redirect(url_for('aluno_login'))
-    sub = execute_query(
-        "SELECT * FROM submissao WHERE id = ? AND aluno_id = ?",
-        (id, session['aluno_id']),
-        fetchone=True
-    )
+    conn = get_db()
+    sub = conn.execute("SELECT * FROM submissao WHERE id = ? AND aluno_id = ?",
+                      (id, session['aluno_id'])).fetchone()
+    conn.close()
     if not sub:
         flash('Submissão não encontrada!', 'danger')
         return redirect(url_for('aluno_dashboard'))
@@ -403,31 +328,34 @@ def admin_dashboard():
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
 
-    pendentes = execute_query('''
+    conn = get_db()
+    pendentes = conn.execute('''
         SELECT s.*, a.nome, a.curso, a.turma, a.semestre, a.ra
         FROM submissao s
         JOIN alunos a ON s.aluno_id = a.id
         WHERE s.status = 'pendente'
         ORDER BY s.data_envio DESC
-    ''', fetch=True)
+    ''').fetchall()
 
-    historico = execute_query('''
+    historico = conn.execute('''
         SELECT s.*, a.nome, a.curso, a.turma, a.semestre, a.ra
         FROM submissao s
         JOIN alunos a ON s.aluno_id = a.id
         WHERE s.status != 'pendente'
         ORDER BY s.data_revisao DESC
         LIMIT 50
-    ''', fetch=True)
+    ''').fetchall()
 
-    stats = execute_query('''
+    stats = conn.execute('''
         SELECT
             COUNT(*) as total,
             SUM(CASE WHEN status='pendente' THEN 1 ELSE 0 END) as pendentes,
             SUM(CASE WHEN status='aprovado' THEN 1 ELSE 0 END) as aprovados,
             SUM(CASE WHEN status='rejeitado' THEN 1 ELSE 0 END) as rejeitados
         FROM submissao
-    ''', fetchone=True)
+    ''').fetchone()
+
+    conn.close()
 
     return render_template('admin_dashboard.html',
                          pendentes=pendentes,
@@ -439,11 +367,13 @@ def admin_aprovar(id):
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
     nota = request.form.get('nota', '')
-    execute_query(
+    conn = get_db()
+    conn.execute(
         "UPDATE submissao SET status = 'aprovado', admin_nota = ?, data_revisao = ? WHERE id = ?",
-        (nota, datetime.now().isoformat(), id),
-        commit=True
+        (nota, datetime.now().isoformat(), id)
     )
+    conn.commit()
+    conn.close()
     flash('Submissão aprovada!', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -452,11 +382,13 @@ def admin_rejeitar(id):
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
     nota = request.form.get('nota', '')
-    execute_query(
+    conn = get_db()
+    conn.execute(
         "UPDATE submissao SET status = 'rejeitado', admin_nota = ?, data_revisao = ? WHERE id = ?",
-        (nota, datetime.now().isoformat(), id),
-        commit=True
+        (nota, datetime.now().isoformat(), id)
     )
+    conn.commit()
+    conn.close()
     flash('Submissão rejeitada!', 'warning')
     return redirect(url_for('admin_dashboard'))
 
