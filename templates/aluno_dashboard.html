@@ -58,7 +58,7 @@
                             <span class="badge badge-rejeitado">Rejeitado</span>
                         {% endif %}
                     </td>
-                    <td style="color: var(--text-3);">{{ sub.data_envio[:10] }}</td>
+                    <td style="color: var(--text-3);">{{ sub.data_envio|dt }}</td>
                     <td style="text-align:right;">
                         <a href="{{ url_for('aluno_ver_submissao', id=sub.id) }}" class="btn btn-ghost btn-sm">Ver</a>
                     </td>

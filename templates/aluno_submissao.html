@@ -5,7 +5,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">{{ sub.evento }}</h1>
-        <p class="page-subtitle">Enviado em {{ sub.data_envio[:19] }}</p>
+        <p class="page-subtitle">Enviado em {{ sub.data_envio|dt('%d/%m/%Y %H:%M') }}</p>
     </div>
     <a href="{{ url_for('aluno_dashboard') }}" class="btn btn-ghost">← Voltar</a>
 </div>

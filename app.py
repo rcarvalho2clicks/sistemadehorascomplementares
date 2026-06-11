@@ -198,6 +198,21 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# ─── JINJA2 FILTERS ────────────────────────────────────────────────
+
+@app.template_filter('dt')
+def format_dt(value, fmt="%Y-%m-%d"):
+    """Formata data para string. Aceita datetime (Postgres) e str (SQLite)."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        # SQLite retorna string
+        return value[:len(fmt)]
+    try:
+        return value.strftime(fmt)
+    except AttributeError:
+        return str(value)
+
 # ─── ROTAS PÚBLICAS ───────────────────────────────────────────────
 
 import traceback
