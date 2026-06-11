@@ -1,9 +1,17 @@
 import os
-import sqlite3
 import uuid
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
+
+# Database
+import sqlite3
+try:
+    import psycopg2
+    import psycopg2.extras
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'horas-complementares-secret-key-mude-isso')
@@ -11,61 +19,147 @@ app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
-# No Render, o disco persistente é montado em /data/horas-complementares/static/uploads
-# O banco deve ir na pasta pai do uploads para persistir entre deploys
-PERSISTENT_DIR = os.environ.get('PERSISTENT_DIR', os.path.join(app.root_path, 'static', 'uploads', '..'))
-DATABASE = os.path.join(PERSISTENT_DIR, 'database.db')
+# Database configuration
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL and HAS_POSTGRES:
+    # PostgreSQL (Render, produção)
+    def get_db():
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn.autocommit = False
+        return conn
+else:
+    # SQLite (desenvolvimento local)
+    PERSISTENT_DIR = os.environ.get('PERSISTENT_DIR', os.path.join(app.root_path, 'static', 'uploads', '..'))
+    DATABASE = os.path.join(PERSISTENT_DIR, 'database.db')
+    os.makedirs(PERSISTENT_DIR, exist_ok=True)
+    
+    def get_db():
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(PERSISTENT_DIR, exist_ok=True)
 
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+def is_postgres():
+    return DATABASE_URL and HAS_POSTGRES
+
+def execute_query(query, params=(), fetch=False, fetchone=False, commit=False):
+    """Executa query com placeholder correto para cada banco."""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if is_postgres():
+        query = query.replace('?', '%s')
+    
+    cur.execute(query, params)
+    
+    if commit:
+        conn.commit()
+    
+    if fetchone:
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        return result
+    elif fetch:
+        result = cur.fetchall()
+        cur.close()
+        conn.close()
+        return result
+    
+    cur.close()
+    conn.close()
+    return None
 
 def init_db():
     conn = get_db()
-    conn.executescript('''
-        CREATE TABLE IF NOT EXISTS alunos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            curso TEXT NOT NULL,
-            turma TEXT NOT NULL,
-            semestre TEXT NOT NULL,
-            ra TEXT NOT NULL UNIQUE,
-            email TEXT,
-            senha TEXT NOT NULL,
-            data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
+    cur = conn.cursor()
+    
+    if is_postgres():
+        # PostgreSQL schema
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS alunos (
+                id SERIAL PRIMARY KEY,
+                nome TEXT NOT NULL,
+                curso TEXT NOT NULL,
+                turma TEXT NOT NULL,
+                semestre TEXT NOT NULL,
+                ra TEXT NOT NULL UNIQUE,
+                email TEXT,
+                senha TEXT NOT NULL,
+                data_cadastro TIMESTAMP DEFAULT NOW()
+            );
+        ''')
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS admin (
+                id SERIAL PRIMARY KEY,
+                usuario TEXT NOT NULL UNIQUE,
+                senha TEXT NOT NULL
+            );
+        ''')
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS submissao (
+                id SERIAL PRIMARY KEY,
+                aluno_id INTEGER NOT NULL REFERENCES alunos(id),
+                evento TEXT NOT NULL,
+                descricao TEXT,
+                horas REAL NOT NULL,
+                arquivo TEXT NOT NULL,
+                status TEXT DEFAULT 'pendente',
+                admin_nota TEXT,
+                data_envio TIMESTAMP DEFAULT NOW(),
+                data_revisao TIMESTAMP
+            );
+        ''')
+        
+        # Admin padrão
+        cur.execute("SELECT id FROM admin WHERE usuario = %s", ('admin',))
+        if not cur.fetchone():
+            cur.execute("INSERT INTO admin (usuario, senha) VALUES (%s, %s)", ('admin', 'admin123'))
+    else:
+        # SQLite schema
+        cur.executescript('''
+            CREATE TABLE IF NOT EXISTS alunos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                curso TEXT NOT NULL,
+                turma TEXT NOT NULL,
+                semestre TEXT NOT NULL,
+                ra TEXT NOT NULL UNIQUE,
+                email TEXT,
+                senha TEXT NOT NULL,
+                data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
 
-        CREATE TABLE IF NOT EXISTS admin (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT NOT NULL UNIQUE,
-            senha TEXT NOT NULL
-        );
+            CREATE TABLE IF NOT EXISTS admin (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT NOT NULL UNIQUE,
+                senha TEXT NOT NULL
+            );
 
-        CREATE TABLE IF NOT EXISTS submissao (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            aluno_id INTEGER NOT NULL,
-            evento TEXT NOT NULL,
-            descricao TEXT,
-            horas REAL NOT NULL,
-            arquivo TEXT NOT NULL,
-            status TEXT DEFAULT 'pendente',
-            admin_nota TEXT,
-            data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            data_revisao TIMESTAMP,
-            FOREIGN KEY (aluno_id) REFERENCES alunos(id)
-        );
-    ''')
-
-    # Admin padrão (se não existir)
-    admin_exists = conn.execute("SELECT id FROM admin WHERE usuario = 'admin'").fetchone()
-    if not admin_exists:
-        conn.execute("INSERT INTO admin (usuario, senha) VALUES (?, ?)",
-                     ('admin', 'admin123'))
+            CREATE TABLE IF NOT EXISTS submissao (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                aluno_id INTEGER NOT NULL,
+                evento TEXT NOT NULL,
+                descricao TEXT,
+                horas REAL NOT NULL,
+                arquivo TEXT NOT NULL,
+                status TEXT DEFAULT 'pendente',
+                admin_nota TEXT,
+                data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                data_revisao TIMESTAMP,
+                FOREIGN KEY (aluno_id) REFERENCES alunos(id)
+            );
+        ''')
+        
+        # Admin padrão
+        cur.execute("SELECT id FROM admin WHERE usuario = ?", ('admin',))
+        if not cur.fetchone():
+            cur.execute("INSERT INTO admin (usuario, senha) VALUES (?, ?)", ('admin', 'admin123'))
+    
     conn.commit()
+    cur.close()
     conn.close()
 
 # Inicializa banco de dados na carga do módulo (gunicorn)
@@ -92,19 +186,20 @@ def aluno_cadastro():
         email = request.form['email']
         senha = request.form['senha']
 
-        conn = get_db()
         try:
-            conn.execute(
+            execute_query(
                 "INSERT INTO alunos (nome, curso, turma, semestre, ra, email, senha) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (nome, curso, turma, semestre, ra, email, senha)
+                (nome, curso, turma, semestre, ra, email, senha),
+                commit=True
             )
-            conn.commit()
             flash('Cadastro realizado com sucesso! Faça login.', 'success')
-        except sqlite3.IntegrityError:
-            flash('RA já cadastrado!', 'danger')
+        except (sqlite3.IntegrityError, Exception) as e:
+            # PostgreSQL raises psycopg2.errors.UniqueViolation
+            if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+                flash('RA já cadastrado!', 'danger')
+            else:
+                raise
             return render_template('aluno_cadastro.html')
-        finally:
-            conn.close()
         return redirect(url_for('aluno_login'))
     return render_template('aluno_cadastro.html')
 
@@ -113,9 +208,11 @@ def aluno_login():
     if request.method == 'POST':
         ra = request.form['ra']
         senha = request.form['senha']
-        conn = get_db()
-        aluno = conn.execute("SELECT * FROM alunos WHERE ra = ? AND senha = ?", (ra, senha)).fetchone()
-        conn.close()
+        aluno = execute_query(
+            "SELECT * FROM alunos WHERE ra = ? AND senha = ?", 
+            (ra, senha), 
+            fetchone=True
+        )
         if aluno:
             session['aluno_id'] = aluno['id']
             session['aluno_nome'] = aluno['nome']
@@ -134,9 +231,11 @@ def admin_login():
     if request.method == 'POST':
         usuario = request.form['usuario']
         senha = request.form['senha']
-        conn = get_db()
-        admin = conn.execute("SELECT * FROM admin WHERE usuario = ? AND senha = ?", (usuario, senha)).fetchone()
-        conn.close()
+        admin = execute_query(
+            "SELECT * FROM admin WHERE usuario = ? AND senha = ?", 
+            (usuario, senha), 
+            fetchone=True
+        )
         if admin:
             session['admin_id'] = admin['id']
             session['admin_user'] = admin['usuario']
@@ -157,23 +256,28 @@ def aluno_dashboard():
     if 'aluno_id' not in session:
         return redirect(url_for('aluno_login'))
 
-    conn = get_db()
-    aluno = conn.execute("SELECT * FROM alunos WHERE id = ?", (session['aluno_id'],)).fetchone()
-    submissoes = conn.execute(
+    aluno = execute_query(
+        "SELECT * FROM alunos WHERE id = ?", 
+        (session['aluno_id'],), 
+        fetchone=True
+    )
+    submissoes = execute_query(
         "SELECT * FROM submissao WHERE aluno_id = ? ORDER BY data_envio DESC",
-        (session['aluno_id'],)
-    ).fetchall()
+        (session['aluno_id'],),
+        fetch=True
+    )
 
     # Estatísticas
-    total_horas = conn.execute(
+    total_horas = execute_query(
         "SELECT COALESCE(SUM(horas), 0) FROM submissao WHERE aluno_id = ? AND status = 'aprovado'",
-        (session['aluno_id'],)
-    ).fetchone()[0]
-    pendentes = conn.execute(
+        (session['aluno_id'],),
+        fetchone=True
+    )[0]
+    pendentes = execute_query(
         "SELECT COUNT(*) FROM submissao WHERE aluno_id = ? AND status = 'pendente'",
-        (session['aluno_id'],)
-    ).fetchone()[0]
-    conn.close()
+        (session['aluno_id'],),
+        fetchone=True
+    )[0]
 
     return render_template('aluno_dashboard.html',
                          aluno=aluno,
@@ -201,13 +305,11 @@ def aluno_nova_submissao():
         nome_arquivo = f"{uuid.uuid4().hex}.{ext}"
         arquivo.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo))
 
-        conn = get_db()
-        conn.execute(
+        execute_query(
             "INSERT INTO submissao (aluno_id, evento, descricao, horas, arquivo) VALUES (?, ?, ?, ?, ?)",
-            (session['aluno_id'], evento, descricao, float(horas), nome_arquivo)
+            (session['aluno_id'], evento, descricao, float(horas), nome_arquivo),
+            commit=True
         )
-        conn.commit()
-        conn.close()
 
         flash('Horas complementares enviadas para aprovação!', 'success')
         return redirect(url_for('aluno_dashboard'))
@@ -218,10 +320,11 @@ def aluno_nova_submissao():
 def aluno_ver_submissao(id):
     if 'aluno_id' not in session:
         return redirect(url_for('aluno_login'))
-    conn = get_db()
-    sub = conn.execute("SELECT * FROM submissao WHERE id = ? AND aluno_id = ?",
-                      (id, session['aluno_id'])).fetchone()
-    conn.close()
+    sub = execute_query(
+        "SELECT * FROM submissao WHERE id = ? AND aluno_id = ?",
+        (id, session['aluno_id']),
+        fetchone=True
+    )
     if not sub:
         flash('Submissão não encontrada!', 'danger')
         return redirect(url_for('aluno_dashboard'))
@@ -234,34 +337,31 @@ def admin_dashboard():
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
 
-    conn = get_db()
-    pendentes = conn.execute('''
+    pendentes = execute_query('''
         SELECT s.*, a.nome, a.curso, a.turma, a.semestre, a.ra
         FROM submissao s
         JOIN alunos a ON s.aluno_id = a.id
         WHERE s.status = 'pendente'
         ORDER BY s.data_envio DESC
-    ''').fetchall()
+    ''', fetch=True)
 
-    historico = conn.execute('''
+    historico = execute_query('''
         SELECT s.*, a.nome, a.curso, a.turma, a.semestre, a.ra
         FROM submissao s
         JOIN alunos a ON s.aluno_id = a.id
         WHERE s.status != 'pendente'
         ORDER BY s.data_revisao DESC
         LIMIT 50
-    ''').fetchall()
+    ''', fetch=True)
 
-    stats = conn.execute('''
+    stats = execute_query('''
         SELECT
             COUNT(*) as total,
             SUM(CASE WHEN status='pendente' THEN 1 ELSE 0 END) as pendentes,
             SUM(CASE WHEN status='aprovado' THEN 1 ELSE 0 END) as aprovados,
             SUM(CASE WHEN status='rejeitado' THEN 1 ELSE 0 END) as rejeitados
         FROM submissao
-    ''').fetchone()
-
-    conn.close()
+    ''', fetchone=True)
 
     return render_template('admin_dashboard.html',
                          pendentes=pendentes,
@@ -273,13 +373,11 @@ def admin_aprovar(id):
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
     nota = request.form.get('nota', '')
-    conn = get_db()
-    conn.execute(
+    execute_query(
         "UPDATE submissao SET status = 'aprovado', admin_nota = ?, data_revisao = ? WHERE id = ?",
-        (nota, datetime.now().isoformat(), id)
+        (nota, datetime.now().isoformat(), id),
+        commit=True
     )
-    conn.commit()
-    conn.close()
     flash('Submissão aprovada!', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -288,13 +386,11 @@ def admin_rejeitar(id):
     if 'admin_id' not in session:
         return redirect(url_for('admin_login'))
     nota = request.form.get('nota', '')
-    conn = get_db()
-    conn.execute(
+    execute_query(
         "UPDATE submissao SET status = 'rejeitado', admin_nota = ?, data_revisao = ? WHERE id = ?",
-        (nota, datetime.now().isoformat(), id)
+        (nota, datetime.now().isoformat(), id),
+        commit=True
     )
-    conn.commit()
-    conn.close()
     flash('Submissão rejeitada!', 'warning')
     return redirect(url_for('admin_dashboard'))
 
