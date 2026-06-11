@@ -47,6 +47,29 @@ def is_postgres():
 # Detecta tipo de banco ativo
 _IS_POSTGRES = is_postgres()
 
+class ResultRow:
+    """Wrapper que suporta acesso por nome ['coluna'] e por índice [0],
+    compatível com sqlite3.Row para migração transparente."""
+    __slots__ = ('_data', '_keys')
+    
+    def __init__(self, keys, values):
+        self._keys = keys
+        self._data = values
+    
+    def __getitem__(self, key):
+        if isinstance(key, (int,)):
+            return self._data[key]
+        return self._data[self._keys.index(key)]
+    
+    def __bool__(self):
+        return True
+    
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except (IndexError, ValueError):
+            return default
+
 def execute_query(query, params=(), fetch=False, fetchone=False, commit=False):
     """Executa query com placeholder correto para cada banco."""
     conn = get_db()
@@ -56,28 +79,20 @@ def execute_query(query, params=(), fetch=False, fetchone=False, commit=False):
         query = query.replace('?', '%s')
     
     cur.execute(query, params)
+    cols = [desc[0] for desc in cur.description] if cur.description else []
     
     if commit:
         conn.commit()
     
     if fetchone:
         row = cur.fetchone()
-        if row is not None and _IS_POSTGRES:
-            # psycopg2 (sem DictCursor): tuple -> dict-like wrapper
-            cols = [desc[0] for desc in cur.description]
-            result = dict(zip(cols, row)) if row else None
-        else:
-            result = row
+        result = ResultRow(cols, row) if row is not None else None
         cur.close()
         conn.close()
         return result
     elif fetch:
         rows = cur.fetchall()
-        if rows and _IS_POSTGRES:
-            cols = [desc[0] for desc in cur.description]
-            result = [dict(zip(cols, r)) for r in rows]
-        else:
-            result = rows
+        result = [ResultRow(cols, r) for r in rows]
         cur.close()
         conn.close()
         return result
